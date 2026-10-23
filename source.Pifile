@@ -1,0 +1,36 @@
+# Define image URLs in a more maintainable structure
+declare -A RASPIOS_IMAGES=(
+    # Raspberry Pi OS (Raspbian)
+    ["raspbian"]="https://downloads.raspberrypi.com/raspios_lite_arm64/images/raspios_lite_arm64-2024-11-19/2024-11-19-raspios-bookworm-arm64-lite.img.xz"
+    
+    # Ubuntu
+    ["ubuntu"]="https://cdimage.ubuntu.com/releases/24.04/release/ubuntu-24.04.3-preinstalled-server-arm64+raspi.img.xz"
+)
+
+# Validate required environment variables
+if [[ -z "${DISTRIBUTION}" ]]; then
+    echo "Error: Required environment variables not set" >&2
+    echo "Please ensure DISTRIBUTION is set" >&2
+    exit 1
+fi
+
+# Create the lookup key
+KEY="${DISTRIBUTION}"
+
+# Debug information
+echo "Debug: Looking up key '${KEY}'" >&2
+echo "Debug: Available keys:" >&2
+for k in "${!RASPIOS_IMAGES[@]}"; do
+    echo "  $k" >&2
+done
+
+# Look up the URL with a default empty value to prevent unbound variable error
+URL="${RASPIOS_IMAGES[$KEY]:-}"
+
+# Validate that we found a valid URL
+if [[ -z "${URL}" ]]; then
+    echo "Error: URL did not resolve for ${KEY}" >&2
+    exit 1
+fi
+
+FROM ${URL}

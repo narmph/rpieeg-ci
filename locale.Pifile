@@ -1,0 +1,46 @@
+# Configure timezone and keyboard layout
+RUN apt-get install -y raspi-config
+RUN bash -c "sudo raspi-config nonint do_wifi_country $WIFI_COUNTRY_CODE"
+
+RUN bash -c 'cat > /tmp/configure_locale.sh << "EOFSCRIPT"
+#!/bin/bash
+set -e
+
+source /tmp/.env
+
+echo "Configuring system with timezone: $TIMEZONE and keyboard: $KEYBOARD_LAYOUT"
+
+# Function to configure using Raspberry Pi Imager custom tool if available
+configure_with_imager_custom() {
+  echo "Using raspberrypi-sys-mods imager_custom tool"
+  /usr/lib/raspberrypi-sys-mods/imager_custom set_keymap "$KEYBOARD_LAYOUT"
+  /usr/lib/raspberrypi-sys-mods/imager_custom set_timezone "$TIMEZONE"
+}
+
+# Function to configure manually
+configure_manually() {
+  echo "Configuring manually"
+  # Set timezone
+  rm -f /etc/localtime
+  echo "$TIMEZONE" > /etc/timezone
+  dpkg-reconfigure -f noninteractive tzdata
+  
+  # Set keyboard
+  cat > /etc/default/keyboard << KBEOF
+XKBMODEL="$KEYBOARD_MODEL"
+XKBLAYOUT="$KEYBOARD_LAYOUT"
+XKBVARIANT=""
+XKBOPTIONS=""
+KBEOF
+  dpkg-reconfigure -f noninteractive keyboard-configuration
+}
+
+if [ -f /usr/lib/raspberrypi-sys-mods/imager_custom ]; then
+  configure_with_imager_custom
+else
+  configure_manually
+fi
+
+EOFSCRIPT
+
+chmod +x /tmp/configure_locale.sh && /tmp/configure_locale.sh'
